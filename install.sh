@@ -226,7 +226,7 @@ start_daemon_all(){
       fi
 
       start-stop-daemon --start --quiet --background --oknodo --pidfile $PIDFILE \
-                --exec $DAEMON -- -f ${CONFIGFILE} -D -p $PIDFILE -N 1 -n
+                --exec $DAEMON -- -f ${CONFIGFILE} -D -p $PIDFILE -N 4 -n
       sleep 2
       
       if [ -s $PIDFILE ];then
@@ -240,7 +240,7 @@ stop_daemon_all(){
           printf "%s\n" "${CRED} Danted Server [ PID.LOST;Unable ] ${CEND}"
     fi
         start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE \
-    --exec $DAEMON -- -f ${CONFIGFILE} -p $PIDFILE -N 1 -n
+    --exec $DAEMON -- -f ${CONFIGFILE} -p $PIDFILE -N 4 -n
 
     ( [ -n "$( ps aux | awk '{print $2}'| grep "^$(cat $PIDFILE)$" )" ] && \
       printf "%s\n" "${CRED} Danted Server [ Stop Failed ] ${CEND}" ) || \
@@ -261,7 +261,7 @@ reload_daemon_all(){
         continue
     fi
         start-stop-daemon --stop --signal 1 --quiet --oknodo --pidfile $PIDFILE \
-    --exec $DAEMON -- -f $CONFIGFILE -p $PIDFILE -N 1 -n
+    --exec $DAEMON -- -f $CONFIGFILE -p $PIDFILE -N 4 -n
 
     ( [ -n "$( ps aux | awk '{print $2}'| grep "^$(cat $PIDFILE)$" )" ] \
       && printf "%s\n" "${CGREEN} Danted Server [ Runing ] ${CEND}" ) \
