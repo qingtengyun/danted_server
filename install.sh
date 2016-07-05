@@ -1,16 +1,10 @@
 #!/bin/bash
-service danted stop > /dev/null 2>&1
-rm /etc/danted -rf 
-
-VERSION="v1.4.1"
-DEFAULT_PORT="1080"
+VERSION="v1.3.2"
+DEFAULT_PORT="62015"
 DEFAULT_USER="danted"
 DEFAULT_PAWD="danted"
-MASTER_IP="0.0.0.0/0"
+MASTER_IP="buyvm.info"
 SERVERIP=$(ifconfig | grep 'inet addr' | grep -Ev 'inet addr:127.0.0|inet addr:192.168.0|inet addr:10.0.0' | sed -n 's/.*inet addr:\([^ ]*\) .*/\1/p')
-if [ -z "$SERVERIP" ]; then
-	SERVERIP=$(ifconfig | grep 'inet ' | grep -Ev 'inet 127.0.0|inet 192.168.0|inet 10.0.0' | sed -n 's/.*inet \([^ ]*\) .*/\1/p')
-fi
 ###############################################------------Menu()---------#####################################################
 for _PARAMETER in $*
 do
@@ -74,14 +68,13 @@ EOF
 }
 
 path=$(cd `dirname $0`;pwd )
-( ( [ -n "$(grep CentOS /etc/issue)" ] \
-  || [ -n "$(grep CentOS /etc/centos-release)" ] ) \
+( [ -n "$(grep CentOS /etc/issue)" ] \
   && ( yum install gcc g++ make vim pam-devel tcp_wrappers-devel unzip httpd-tools -y ) ) \
   || ( [ -n "$(grep -E 'Debian|Ubuntu' /etc/issue)" ] \
   && ( apt-get update ) \
+  && ( apt-get purge dante-server -y ) \
   && ( apt-get install gcc g++ make vim libpam-dev libwrap0-dev unzip apache2-utils -y ) )\
   || exit 0
-#&& ( apt-get purge dante-server -y ) \
 
 useradd sock -s /bin/false > /dev/null 2>&1
 #echo sock:sock | chpasswd
@@ -141,13 +134,13 @@ cd /tmp/danted
 
 #start-stop-daemon
 if [ -z "$(command -v start-stop-daemon)" ];then
-wget http://developer.axis.com/download/distribution/apps-sys-utils-start-stop-daemon-IR1_9_18-2.tar.gz
+wget http://repo.kvscan.com/danted/apps-sys-utils-start-stop-daemon-IR1_9_18-2.tar.gz
 tar zxvf apps-sys-utils-start-stop-daemon-IR1_9_18-2.tar.gz
 gcc apps/sys-utils/start-stop-daemon-IR1_9_18-2/start-stop-daemon.c -o start-stop-daemon -o /usr/local/sbin/start-stop-daemon
 fi
 #libpam-pwdfile
 if [ ! -s /lib/security/pam_pwdfile.so ];then
-wget --no-check-certificate https://github.com/tiwe-de/libpam-pwdfile/archive/master.zip -O master.zip
+wget http://repo.kvscan.com/danted/master.zip -O master.zip
 unzip master.zip
 cd libpam-pwdfile-master/
 make && make install
@@ -155,7 +148,7 @@ cd ../
 fi
 
 if [ ! -s /etc/danted/sbin/sockd ] || [ -z "$(/etc/danted/sbin/sockd -v | grep "$VERSION")" ];then
-wget http://www.inet.no/dante/files/dante-1.4.1.tar.gz
+wget http://repo.kvscan.com/danted/dante-1.3.2.tar.gz
 tar zxvf dante*
 cd dante*
 ./configure --with-sockd-conf=${CONFIGFILE} --prefix=/etc/danted
@@ -172,7 +165,10 @@ EOF
 /usr/bin/htpasswd -c -d -b /etc/danted/sockd.passwd ${DEFAULT_USER} ${DEFAULT_PAWD}
 
 cat > /etc/init.d/danted <<'EOF'
-#! /bin/bash
+#gedit /etc/init.d/danted
+#!/bin/bash
+# chkconfig: 2345 10 90 
+# description: danted ....
 ### BEGIN INIT INFO
 # Provides:          danted
 # Reprogarm:         airski
@@ -186,7 +182,7 @@ cat > /etc/init.d/danted <<'EOF'
 # dante socks5 daemon for Debian/Centos
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/etc/danted/sbin/sockd
-VERSION="1.4.1"
+VERSION="1.3.2"
 DESC="Dante SOCKS daemon"
 PIDFILE="/var/run/sockd.pid"
 CONFIGFILE=/etc/danted/sockd.conf
@@ -207,7 +203,7 @@ CCYAN="${CSI}1;36m"
 start_daemon_all(){
       LOGFILE=$(grep '^logoutput' ${CONFIGFILE} | sed 's/.*logoutput: \(.*\).*/\1/g')
       if [ -s $PIDFILE ] && [ -n "$( ps aux | awk '{print $2}'| grep "^$(cat $PIDFILE)$" )" ];then
-           echo -e "${CRED}Danted Server [ Runing;Failed ] ${CEND}" 
+           printf "%s\n" "${CRED} Danted Server [ Runing;Failed ] ${CEND}" 
            return 0
       fi
       cp /dev/null $PIDFILE
@@ -215,28 +211,28 @@ start_daemon_all(){
       if ! egrep -cve '^ *(#|$)' \
          -e '^(logoutput|user\.((not)?privileged|libwrap)):' $CONFIGFILE > /dev/null
       then
-          echo -e "${CRED}Danted Server [ not configured ] ${CEND}"
+          printf "%s\n" "${CRED} Danted Server [ not configured ] ${CEND}"
           return 0
       fi
       start-stop-daemon --start --quiet --background --oknodo --pidfile $PIDFILE \
-                --exec $DAEMON -- -f ${CONFIGFILE} -D -p $PIDFILE -N 1 -n
+                --exec $DAEMON -- -f ${CONFIGFILE} -D -p $PIDFILE -N 4 -n
       sleep 2
       
       if [ -s $PIDFILE ];then
-          echo -e "${CGREEN}Danted Server [ Runing ] ${CEND}"
+          printf "%s\n" "${CGREEN} Danted Server [ Runing ] ${CEND}"
       else
-          echo -e "${CRED}Danted Server [ Start Faild ] ${CEND}"
+          printf "%s\n" "${CRED} Danted Server [ Start Faild ] ${CEND}"
       fi
 }
 stop_daemon_all(){
     if [ ! -s $PIDFILE ];then 
-          echo -e "${CRED}Danted Server [ PID.LOST;Unable ] ${CEND}"
+          printf "%s\n" "${CRED} Danted Server [ PID.LOST;Unable ] ${CEND}"
     fi
         start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE \
-    --exec $DAEMON -- -f ${CONFIGFILE} -p $PIDFILE -N 1 -n
+    --exec $DAEMON -- -f ${CONFIGFILE} -p $PIDFILE -N 4 -n
     ( [ -n "$( ps aux | awk '{print $2}'| grep "^$(cat $PIDFILE)$" )" ] && \
-      echo -e "${CRED}Danted Server [ Stop Failed ] ${CEND}" ) || \
-      echo -e "${CYELLOW}Danted Server [ Stop Done ] ${CEND}"
+      printf "%s\n" "${CRED} Danted Server [ Stop Failed ] ${CEND}" ) || \
+      printf "%s\n" "${CYELLOW} Danted Server [ Stop Done ] ${CEND}"
 }
 force_stop_daemon(){
     ps -ef | grep 'sockd' | grep -v 'grep' | awk '{print $2}' | while read pid; do kill -9 $pid > /dev/null 2>&1 ;done
@@ -244,21 +240,21 @@ force_stop_daemon(){
 reload_daemon_all(){
     if [ -s $PIDFILE ];then
       if [ -z "$( ps aux | awk '{print $2}'| grep "^$(cat $PIDFILE)$" )" ];then
-        echo -e "${CRED}Danted Server [ PID.DIE;Unable ] ${CEND}"  
+        printf "%s\n" "${CRED} Danted Server [ PID.DIE;Unable ] ${CEND}"  
         continue
       fi
    else
-        echo -e "${CRED}Danted Server [ PID.LOST;Unable ] ${CEND}" 
+        printf "%s\n" "${CRED} Danted Server [ PID.LOST;Unable ] ${CEND}" 
         continue
     fi
         start-stop-daemon --stop --signal 1 --quiet --oknodo --pidfile $PIDFILE \
-    --exec $DAEMON -- -f $CONFIGFILE -p $PIDFILE -N 1 -n
+    --exec $DAEMON -- -f $CONFIGFILE -p $PIDFILE -N 4 -n
     ( [ -n "$( ps aux | awk '{print $2}'| grep "^$(cat $PIDFILE)$" )" ] \
-      && echo -e "${CGREEN}Danted Server [ Runing ] ${CEND}" ) \
-      || echo -e "${CRED}Danted Server [ Failed ] ${CEND}"
+      && printf "%s\n" "${CGREEN} Danted Server [ Runing ] ${CEND}" ) \
+      || printf "%s\n" "${CRED} Danted Server [ Failed ] ${CEND}"
 }
 status_daemon_all(){
-    printf "%s\n" "${CCYAN}+-----------------------------------------+$CEND"
+    printf "%s\n" "${CCYAN}+-----------------------------------------+${CEND}"
     if [ ! -s $PIDFILE ];then
       printf "%s\n" "${CRED} Danted Server [ Stop ] ${CEND}"
     else
@@ -266,7 +262,7 @@ status_daemon_all(){
       && printf "%s\n" "${CGREEN} Danted Server [ Runing ] ${CEND}" ) \
       || printf "%s\n" "${CRED} Danted Server [ PID.DIE;Running ] ${CEND}"
     fi
-    printf "%s\n" "${CCYAN}+-----------------------------------------+$CEND"
+    printf "%s\n" "${CCYAN}+-----------------------------------------+${CEND}"
     printf "%-30s%s\n"  "${CGREEN} Dante Version:${CEND}"  "$CMAGENTA ${VERSION}${CEND}"
     printf "%-30s\n"  "${CGREEN} Socks5 Info:${CEND}"
     grep '^internal:' ${CONFIGFILE} | \
@@ -275,7 +271,7 @@ status_daemon_all(){
           printf "%20s%s\n" "" "${CMAGENTA}${proxy}${CEND}"
         done
     
-    SOCKD_USER=$(cat /etc/danted/sockd.passwd | while read line;do echo $line| sed 's/\(.*\):.*/\1/';done)
+    SOCKD_USER=$(cat /etc/danted/sockd.passwd | while read line;do echo $line| sed 's/\(.*\):.*/\1/';done | tr "\n" " ")
     printf "%-30s%s\n" "${CGREEN} Socks5 User:${CEND}"  "$CMAGENTA ${SOCKD_USER}${CEND}"
     printf "%s\n" "${CCYAN}+_________________________________________+$CEND"
 }
@@ -285,7 +281,7 @@ add_user(){
     ( [ -z "$User" ] || [ -z "$Passwd" ] ) && echo " Error: User or password can't be blank" && return 0 
     /usr/bin/htpasswd -d -b /etc/danted/sockd.passwd ${User} ${Passwd}
 }
-del_uer(){
+del_user(){
     User=$1
     [ -z "$User" ] && echo " Error: User Name can't be blank" && return 0 
     /usr/bin/htpasswd -D /etc/danted/sockd.passwd ${User}
@@ -331,11 +327,12 @@ esac
 exit 0
 EOF
 chmod +x /etc/init.d/danted
-[ -n "$(grep CentOS /etc/issue)" ]  && chkconfig --add danted
-[ -n "$(grep -E 'Debian|Ubuntu' /etc/issue)" ] && update-rc.d danted defaults
+[ -n "$(grep -i CentOS /etc/issue)" ]  && chkconfig --add danted
+[ -n "$(egrep -i 'Debian|Ubuntu' /etc/issue)" ] && update-rc.d danted defaults
+uname -a | grep  -q  "x86_64"  &&  [ -n "$(grep -i CentOS /etc/issue)" ]  && cp /lib/security/pam_pwdfile.so /lib64/security/ >/dev/null
 rm /usr/bin/danted -f
 ln -s /etc/danted/sbin/sockd /usr/bin/danted
-service danted restart
+service danted start
 clear
 
 #Color Variable
@@ -375,5 +372,5 @@ else
 fi
 
 cd $path
-#rm -rf $0
+rm -rf $0
 exit
