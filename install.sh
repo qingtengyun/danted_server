@@ -1,10 +1,13 @@
 #!/bin/bash
-VERSION="v1.3.2"
+VERSION="v1.4.1"
 DEFAULT_PORT="62015"
 DEFAULT_USER="danted"
 DEFAULT_PAWD="danted"
-MASTER_IP="buyvm.info"
+MASTER_IP="0.0.0.0/0"
 SERVERIP=$(ifconfig | grep 'inet addr' | grep -Ev 'inet addr:127.0.0|inet addr:192.168.0|inet addr:10.0.0' | sed -n 's/.*inet addr:\([^ ]*\) .*/\1/p')
+if [ -z "$SERVERIP" ]; then
+	SERVERIP=$(ifconfig | grep 'inet ' | grep -Ev 'inet 127.0.0|inet 192.168.0|inet 10.0.0' | sed -n 's/.*inet \([^ ]*\) .*/\1/p')
+fi
 ###############################################------------Menu()---------#####################################################
 for _PARAMETER in $*
 do
@@ -68,12 +71,11 @@ EOF
 }
 
 path=$(cd `dirname $0`;pwd )
-( [ -n "$(grep CentOS /etc/issue)" ] \
-  && ( yum install gcc g++ make vim pam-devel tcp_wrappers-devel unzip httpd-tools -y ) ) \
+( ( [ -n "$(grep CentOS /etc/issue)" ] \
+  || [ -n "$(grep CentOS /etc/centos-release)" ] ) \
+  && ( yum install gcc g++ make pam-devel tcp_wrappers-devel unzip httpd-tools -y ) ) \
   || ( [ -n "$(grep -E 'Debian|Ubuntu' /etc/issue)" ] \
-  && ( apt-get update ) \
-  && ( apt-get purge dante-server -y ) \
-  && ( apt-get install gcc g++ make vim libpam-dev libwrap0-dev unzip apache2-utils -y ) )\
+  && ( apt-get install gcc g++ make libpam-dev libwrap0-dev unzip apache2-utils -y ) )\
   || exit 0
 
 useradd sock -s /bin/false > /dev/null 2>&1
@@ -148,7 +150,7 @@ cd ../
 fi
 
 if [ ! -s /etc/danted/sbin/sockd ] || [ -z "$(/etc/danted/sbin/sockd -v | grep "$VERSION")" ];then
-wget http://repo.kvscan.com/danted/dante-1.3.2.tar.gz
+wget http://repo.kvscan.com/danted/dante-1.4.1.tar.gz
 tar zxvf dante*
 cd dante*
 ./configure --with-sockd-conf=${CONFIGFILE} --prefix=/etc/danted
@@ -182,7 +184,7 @@ cat > /etc/init.d/danted <<'EOF'
 # dante socks5 daemon for Debian/Centos
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/etc/danted/sbin/sockd
-VERSION="1.3.2"
+VERSION="1.4.1"
 DESC="Dante SOCKS daemon"
 PIDFILE="/var/run/sockd.pid"
 CONFIGFILE=/etc/danted/sockd.conf
