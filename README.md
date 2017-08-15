@@ -1,6 +1,7 @@
 ## danted安装部署
 ### 环境要求
 经过测试和修改安装脚本，当前danted支持如下系统版本：
+
 系统类型 | 版本
 ---|---
 Centos 6系列 | 6.0
@@ -71,19 +72,19 @@ Centos 6系列 | 6.0
 ### 使用注意事项
 - 1.绝大部分浏览器（除了Opera）都不支持带密码认证的Socks5，所以使用电脑需要安装proxifier/proxycap 等软件做验证处理。
 - 2.如果是固定IP/Ip 段 可以修改配置文件，设置白名单访问。
- 
+
         a.进入 /etc/danted/ 找到配置文件
 
         b.修改 第一个pass {} 模块下的 from: Master_IP/32 to: 0.0.0.0/0 . 把 Master_IP/32 修改为需要使用代理的Ip段/IP地址 如 114.114.114.0/24 或者 5.5.5.5/32 . 多个访问源，请复制多个 client pass {} 模块
-    
+
         c.重启Danted 进程 service danted restart
 - 3.如需删除danted，请参考以下命令删除程序文件
 
         service danted stop
-    
+
         rm -rf /etc/danted/
-    
+
         rm -f /etc/init.d/danted
-    
+
 ### 遗留问题
 - 分析log对连接sock5的用户进行统计。
