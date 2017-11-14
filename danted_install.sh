@@ -168,7 +168,7 @@ cd ../
 fi
 
 if [ ! -s /etc/danted/sbin/sockd ] || [ -z "$(/etc/danted/sbin/sockd -v | grep "$VERSION")" ];then
-wget http://www.inet.no/dante/files/dante-1.4.1.tar.gz
+wget --no-check-certificate https://raw.githubusercontent.com/qingtengyun/danted_server/master/dante-1.4.1.tar.gz
 tar zxvf dante*
 cd dante*
 ./configure --with-sockd-conf=${CONFIGFILE} --prefix=/etc/danted
