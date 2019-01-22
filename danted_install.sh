@@ -124,26 +124,26 @@ user.notprivileged: sock
 logoutput: /var/log/danted.log
 
 client pass {
-        from: 0.0.0.0/0  to: 0.0.0.0/0
+        from: 0/0  to: 0/0
 }
 client block {
-        from: 0.0.0.0/0 to: 0.0.0.0/0
+        from: 0/0 to: 0/0
 }       
 
 #------------ Master ------------------
 pass {
-        from: ${MASTER_IP} to: 0.0.0.0/0
+        from: ${MASTER_IP} to: 0/0
         method: none
 }       
 #-------------------------------------
 pass {
-        from: 0.0.0.0/0 to: 0.0.0.0/0
+        from: 0/0 to: 0/0
         protocol: tcp udp
         method: pam
         log: connect disconnect
 }
 block {
-        from: 0.0.0.0/0 to: 0.0.0.0/0
+        from: 0/0 to: 0/0
         log: connect error
 }
 EOF
